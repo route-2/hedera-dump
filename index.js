@@ -17,8 +17,8 @@ const operatorId = AccountId.fromString(process.env.MY_ACCOUNT_ID);
 const operatorKey = PrivateKey.fromString(process.env.MY_PRIVATE_KEY);
 const treasuryId = AccountId.fromString(process.env.MY_ACCOUNT_ID);
 const treasuryKey = PrivateKey.fromString(process.env.MY_PRIVATE_KEY);
-const snehaId = AccountId.fromString(process.env.SIGNER_ID);
-const snehaKey = PrivateKey.fromString(process.env.SIGNER_PVKEY);
+const MyId = AccountId.fromString(process.env.SIGNER_ID);
+const MyKey = PrivateKey.fromString(process.env.SIGNER_PVKEY);
 
 const client = Client.forTestnet().setOperator(operatorId, operatorKey);
 
@@ -72,44 +72,56 @@ async function main() {
   let mintRx = await mintTxSubmit.getReceipt(client);
 
   //Log the serial number
-  console.log(`- Created NFT ${tokenId} with serial: ${mintRx.serials[0].low} \n`);
-  
-  //Create the associate transaction and sign with Sneha's key 
-  let associateSnehaTx = await new TokenAssociateTransaction()
-    .setAccountId(snehaId)
+  console.log(
+    `- Created NFT ${tokenId} with serial: ${mintRx.serials[0].low} \n`
+  );
+
+  let associateMyTx = await new TokenAssociateTransaction()
+    .setAccountId(MyId)
     .setTokenIds([tokenId])
     .freezeWith(client)
-    .sign(snehaKey);
+    .sign(MyKey);
 
   //Submit the transaction to a Hedera network
-  let associateSnehaTxSubmit = await associateSnehaTx.execute(client);
+  let associateMyTxSubmit = await associateMyTx.execute(client);
 
   //Get the transaction receipt
-  let associateSnehaRx = await associateSnehaTxSubmit.getReceipt(client);
+  let associateMyRx = await associateMyTxSubmit.getReceipt(client);
 
   //Confirm the transaction was successful
-  console.log(`- NFT association with Sneha's account: ${associateSnehaRx.status}\n`);
-
+  console.log(`- NFT association with My's account: ${associateMyRx.status}\n`);
 
   // Check the balance before the transfer for the treasury account
-  var balanceCheckTx = await new AccountBalanceQuery().setAccountId(treasuryId).execute(client);
-  console.log(`- Treasury balance: ${balanceCheckTx.tokens._map.get(tokenId.toString())} NFTs of ID ${tokenId}`);
+  var balanceCheckTx = await new AccountBalanceQuery()
+    .setAccountId(treasuryId)
+    .execute(client);
+  console.log(
+    `- Treasury balance: ${balanceCheckTx.tokens._map.get(
+      tokenId.toString()
+    )} NFTs of ID ${tokenId}`
+  );
 
-  // Check the balance before the transfer for Sneha's account
-  var balanceCheckTx = await new AccountBalanceQuery().setAccountId(snehaId).execute(client);
-  console.log(`- Sneha's balance: ${balanceCheckTx.tokens._map.get(tokenId.toString())} NFTs of ID ${tokenId}`);
+  var balanceCheckTx = await new AccountBalanceQuery()
+    .setAccountId(MyId)
+    .execute(client);
+  console.log(
+    `- My's balance: ${balanceCheckTx.tokens._map.get(
+      tokenId.toString()
+    )} NFTs of ID ${tokenId}`
+  );
 
-  // Transfer the NFT from treasury to Sneha
   // Sign with the treasury key to authorize the transfer
   let tokenTransferTx = await new TransferTransaction()
-    .addNftTransfer(tokenId, 1, treasuryId, snehaId)
+    .addNftTransfer(tokenId, 1, treasuryId, MyId)
     .freezeWith(client)
     .sign(treasuryKey);
 
   let tokenTransferSubmit = await tokenTransferTx.execute(client);
   let tokenTransferRx = await tokenTransferSubmit.getReceipt(client);
 
-  console.log(`\n- NFT transfer from Treasury to Sneha: ${tokenTransferRx.status} \n`);
+  console.log(
+    `\n- NFT transfer from Treasury to My: ${tokenTransferRx.status} \n`
+  );
 }
 
 main();
